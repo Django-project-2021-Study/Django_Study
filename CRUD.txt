@@ -1,0 +1,302 @@
+CRUD
+C : create
+R : read
+U : update
+D : delete
+무엇을?? 데이터베이스를!
+
+데이터베이스의 정보를 crud 하는것을 지금부터 알아 볼 겁니다!
+이번주 강의는 이론은 별로 없고, 바로 실습으로 진행됩니당
+
+먼저 읽는거 부터 해볼까요오(과제 리뷰 겸사겸사)
+
+
+
+Read
+
+
+
+-------------------------------------------------------------------
+실습 
+맘에 드는 폴더 하나 만들고
+python -m venv myvenv
+source myvenv/Scripts/activate
+pip install django
+django-admin startproject testproject
+cd testproject
+django-admin startapp blog
+settings.py에 가서 blog앱을 추가해야겠죠?
+-> 'blog',
+blog안에 models.py에 순범씨 함수 추가
+
+from django.db import models
+
+class Blog(models.Model):
+    title = models.CharField(max_length=200)
+    writer = models.CharField(max_length=100)
+    pub_date = models.DateTimeField()
+    body = models.TextField()
+
+    def __str__(self):
+        return self.title                -> 원래 admin페이지에 Blog object(1)라고 제목이 뜨는거를 우리가 설정한 제목으로 바꿔주는 메소드입니당(django 기본 메소드로 제공)
+                                              
+
+python manage.py makemigrations
+python manage.py migrate로 데이터베이스에 모델을 올려줍니당
+
+python manage.py createsuperuser 해주고
+
+admin.py에 Blog테이블을 추가해 줘야겠쬬
+
+->from .models import Blog 추가
+->admin.site.register(Blog) 추가
+
+자, 지금까진 저번시간에 했던 내용입니다!
+
+
+blog안에 templates폴더 생성
+templates폴더 안에 home.html 만들고(!누르고 tab), views.py에 함수 생성                           
+
+def home(request):
+    return render(request, 'home.html')
+
+-> request를 받아서 매개변수를 render형식으로 return해줄서야! -> home.html을!
+여기까지는 wordcount랑 동일하지요?
+
+이제 다른거는, 데이터베이스에서 데이터를 달라고 요청을 해야 읽을 수 있어요! 
+-> 계속 views.py입니다
+from .models import Blog를 하고, (model.py에 Blog를 받을겁니당)
+blogs = Blog.objects.all()   -> Blog에 있는 모든 오브젝트들을 blogs라는 객체에 저장 할거야!
+home.html과 같이 return 해주기 위해 옆에 {'blogs':blogs}라고 blogs안에 있는 blogs라는 키값을 전달할거야~ 해줍니다!
+그리고 이제 urls.py로 가서 주소를 추가 해줘야 겠죠?
+
+urls.py로 이동 해서 path를 추가해 줄건데, views.py에 함수가 하나 추가될 때마다 path가 하나씩 늘어난다고 생각하시면 편해요! 그리고 콤마 조심
+
+from blog.views import * -> blog app의 views.py에 있는 모든 함수를 가져오겠다! 명시해줍니다.
+path('', home, name="home"),
+
+자 이제 home.html을 꾸며줍시다 -> 대충 대충 Documents 바꾸고, h1태그로 이름 정해주고 {{blogs}} 객체 출력 되게 해봄
+
+-> 여기서 잠깐! 두둥
+{{어쩌구 저쩌구}} 이거랑 {%어쩌구 저쩌구%} 이런 문법은 뭐에요? html에서 처음 써보는거같아요!
+-> python에 있는 문법을 html에 사용하기 위해 씌운거라고 생각하면 되고, 
+{% for 어쩌구 in 저쩌구 %}
+...
+{% endfor %} -> 이렇게 반복문, 조건문 전부 사용이 가능하답니다! 
+
+이제 서버를 돌려서 admin페이지에 글 쓰고 어떻게 뜨는지 볼까요?
+-> 대충 씀, 보여줌
+에에 이상하죠? 저희가 이런걸 바란게 아니자나요
+그럼 html에 가서 수정을 해야합니다.
+
+아까 {{blogs}}는 주석 처리 해주고, 
+{% for blog in blogs %}
+    <div>
+        <h3>{{blog.title}}</h3>
+
+        {{blog.writer}}
+        <br>
+        {{blog.body}}
+    
+        <br><br>
+{% endfor %}
+
+이대로 입력을 해줍니다.(대충 코드 설명)
+
+근데, 글이 너무 길면 불편 하잖아요? 그래서 저는 100자까지만 보여주게 models.py에 함수를 추가해줄 겁니다. 
+def summary(self):
+        return self.body[:100] ---> 슬라이싱이라는 기술인데, 이거는 파이썬 문법이에요! 나중에 한번 찾아보면서 직접 공부해보시길 바랄게요
+
+그러고 html로 돌아가서 {{blog.body}} 를 {{blog.summary}}로 바꿔줍니다. 
+
+자아 이제 more을 누르면 해당 게시물을 자세히 보고싶어 졌거든요! 그래서 templates안에 detail.html을 만들어 줄겁니다.
+
+html파일을 만들었으니 뭘 해야되죠? views.py에 보내줘야겠죠! 가서 detail함수를 만들어줍니다.
+
+from django.shortcuts import render, get_object_or_404(얘만 추가)
+
+객체를 가져오던가, 404에러를 내던가!
+
+def detail(request, id):
+    blog = get_object_or_404(Blog, pk = id)               -> Blog클래스를 받고, 프라이머리 키를 받을거에요(그게 id임)
+    return render(request, 'detail.html', {'blog':blog})
+
+
+이제 urls.py에 가서 path를 정해줄건데, 기본 주소 말고 해당 게시물의 id를 경로로 지정하고 싶어요!
+
+path('<str:id>', detail, name="detail"),   -> <str:id> 이 친구는 path converter 라고 부릅니당 
+
+이제 이 detail을 띄워줄 링크를 만들어야겠죠! home.html로 갑시다
+summary 옆에 <a href = "{%url 'detail' blog.id%}">..more</a> 를 추가해줍니당
+
+그리고 detail.html을 꾸며주면
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detail</title>
+</head>
+<body>  
+    <h1>{{blog.title}}</h1>
+    <div>
+    작성자 : {{blog.writer}}
+    <br>
+    날짜 : {{blog.pub_date}}
+    </div>
+    <hr>
+    <p>{{blog.body}}</p>
+    
+</body>
+</html>
+
+과제 끗~~
+
+이제 서버 돌리면서 확인해보기
+
+자, 이제 과제 체크는 끝났고 admin에서 쓰지 말고 직접 글을 사용하는 create를 해볼까요?
+
+글을 작성하는 페이지를 만들어 볼게요
+
+new.html을 만들어요!
+
+그리고 html이 생겼으니 뭘해야하죠? views.py가서 함수를 만들어야 겠죠?(일단 임시로)
+def new(request):
+    return render(request, 'new.html')
+
+함수를 대충 만들어 놨으니 해당 링크를 설정 해줘야겠죵 urls.py로 가서 추가해줍니다.
+path('new/', new, name="new"),
+
+이제 글을 새로 작성할 버튼이나 링크가 home에 있어야겠죠? 
+home.html로 갑니당
+<div>
+        <a href="{% url 'new' %}">글 작성을 해보아요</a>
+</div>
+
+대충 for문 위에 추가해줌
+
+그리고나서, new.html을 만들어 봅시다!
+
+<h1>Write Your Blog</h1>
+
+<form action="" method="post">
+    {% csrf_token %}
+    <p>제목 : <input type="text" name="title"></p>
+    <p>작성자 : <input type="text" name="writer"></p>
+    본문 : <textarea name="body" id="" cols="30" rows="10"></textarea>
+    <button type="submit">submit</button>
+
+</form>
+
+일단 이렇게 작성을 하긴 했는데 GET이랑 POST가 뭐가 달라요?
+그리고 {% csrf_token %}는 뭐에요? 
+
+GET은 데이터를 얻기 위한 요청 / 데이터가 url에 다 보임
+POST는 데이터를 생성하기 위한 요청 / 데이터가 url에 안보임 / csrf(사이트간 요청 위조)공격 방지(csrf_token덕분에)
+
+이제 글을 생성하는 create라는 함수를 만들어 봅시다
+views.py로 가서
+
+from django.shortcuts import render, get_object_or_404, redirect(추가)
+from django.utils import timezone(pub_data 하려고 추가)
+
+def create(request):
+    new_blog = Blog()                               -> Blog모델의 객체 생성
+    new_blog.title = request.POST['title']        -> 우리가 POST로 요청한 데이터들을 Blog객체에 저장함.
+    new_blog.writer = request.POST['writer']
+    new_blog.body = request.POST['body']
+    new_blog.pub_date = timezone.now()       -> 날짜, 시간도 저장
+    new_blog.save()                                  -> 저장 필수!!!!!! 제일 중요 중요중요(이건 기본 제공되는 함수입니다.)
+    return redirect('detail', new_blog.id)         -> render가 아닌 redirect를 사용해서 새로 만들어준 게시물의 detail 주소로 슉 가게 해줌
+
+
+이제 create도 path를 추가해줘야겠죠 urls.py로 갑니당
+path('create/', create, name="create"), 추가
+
+그리고 이제 new.html에 가서 action으로 연결을 해줍니다.     <form action="{%url 'create'%}" method="post">
+
+런서버 해볼까욤
+이렇게 create 를 할 수 있는 능력이 생겼습니다.
+
+자, 이제 글을 수정하는 Update를 해볼까욥!
+
+업데이트도 create처럼 두가지 함수가 사용될건데, 
+edit.html(수정하는 페이지)를 보여줄 edit함수와 데이터베이스에 적용 시켜줄 update함수를 사용할겁니다.
+단! 수정알 데이터의 id값을 따로 받아줘야 합니다. 
+바로 ㄱㄱㄱㄱ
+
+views.py에 edit함수 추가
+
+def edit(request, id):                                               -> id값도 받아야 합니당
+    edit_blog = Blog.objects.get(id=id)                         -> edit_blog 객체에 get방식으로 Blog모델 안의 객체들에 대해 id값을 가져옵니다
+    return render(request, 'edit.html', {'blog':edit_blog})    -> 리턴해주어요
+
+urls.py에 가서 path를 추가해야겠죠?
+path('edit/<str:id>', edit, name="edit"), 
+
+이제 수정하고픈 페이지에서 해당 요청을 보내야겠죠?
+
+deatil.html로 가서 추가해줍니당
+<a href="{% url 'edit' blog.id %}">수정하기</a>
+
+그리고 edit.htm을 만들어 줘요
+<h1>Update Your Blog</h1>
+
+<form action="" method="post">                                                                      -> 아직은 action 빈칸
+    {% csrf_token %}
+    <p>제목 : <input type="text" name="title" value="{{blog.title}}"></p>
+    <p>작성자 : <input type="text" name="writer" value="{{blog.writer}}"></p>
+    본문 : <textarea name="body" id="" cols="30" rows="10">{{blog.body}}</textarea>
+    <button type="submit">submit</button>
+
+</form>
+
+ 
+
+자, 여기까지 하고 서버 돌리면 수정할 수 있게끔 했죠? 하지만 submit을 눌러도 아무일도 일어나지 않을 겁니다. action을 안넣었으니까요!
+
+이제 action에 들어갈 update함수를 만들어 봅시다
+
+(create랑 유사합니당!)
+
+def update(request, id):
+    update_blog = Blog.objects.get(id=id)
+    update_blog.title = request.POST['title']
+    update_blog.writer = request.POST['writer']
+    update_blog.body = request.POST['body']
+    update_blog.pub_date = timezone.now()
+    update_blog.save()
+    return redirect('detail', update_blog.id)
+
+edit.html 가서 action을 채워줍시다 <form action="{%url 'update' blog.id%}" method="post">
+
+urls.py가서 경로도 지정해줍니당
+path('update/<str:id>', update, name="update"),	
+
+짜잔 이렇게 수정도 다 배웠습니다
+
+이제 delete를 배워서 글을 삭제해봅시다!
+delete는 따로 html을 안만들고 함수만 만들어도 됩니다!
+
+views.py에서
+
+def delete(request, id):
+    delete_blog = Blog.objects.get(id=id)
+    delete_blog.delete()
+    return redirect('home')
+
+만들고
+
+urls.py에서
+
+path('delete/<str:id>', delete, name="delete"),
+추가해주고
+
+detail.py에서
+
+<a href="{% url 'delete' blog.id %}">삭제하기</a>
+를 추가해줍니다. 
+
+런서버 해보고!! 와하 잘 되네요! 끗!
