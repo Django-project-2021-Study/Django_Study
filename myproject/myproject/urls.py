@@ -1,14 +1,13 @@
 from django.contrib import admin
-from django.urls import path
-from main.views import *
+from django.urls import path, include
+from main.views import home
+from django.conf import settings
+from django.conf.urls.static import static
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', home, name="home"),
-    path('<str:id>', detail, name="detail"),
-    path('new/', new, name="new"),
-    path('create/', create, name="create"),
-    path('edit/<str:id>', edit, name="edit"),
-    path('update/<str:id>', update, name="update"),	
-    path('delete/<str:id>', delete, name="delete"),
-]
+    path('main/', include('main.urls')),
+    path('account/', include('account.urls')),
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
